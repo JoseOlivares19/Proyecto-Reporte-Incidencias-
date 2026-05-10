@@ -1,0 +1,38 @@
+:root {
+    --primario: #1A365D;
+    --secundario: #E6E8EA;
+    --otro: #E0E3E5;
+}
+
+.logo {
+    font-size: 1.5rem !important;
+    font-weight: bold !important;
+    color: #1A365D !important;
+}
+.bg-primary {
+    color: white;
+    background-color: var(--primario) !important;
+}
+
+.bg-navbar {
+    background-color: #ffff !important;
+}
+.register-button {
+    background-color: #1A365D !important;
+    color: white !important;
+    border-radius: 20px !important;
+    cursor: pointer !important;
+}
+.main {
+    background-color: var(--secundario) !important;
+}
+.footer {
+    height: 15vh;
+    background-color: var(--otro) !important;
+}
+.bg-otro {
+    background-color: var(--otro) !important;
+}
+.txt-primary {
+    color: var(--primario) !important;
+}

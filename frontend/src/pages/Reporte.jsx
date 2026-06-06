@@ -1,120 +1,157 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
-import api from '../services/api';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
+import api from "../services/api";
 
 export default function Reporte() {
-  const [categoria, setCategoria] = useState('');
-  const [asunto, setAsunto] = useState('');
-  const [descripcion, setDescripcion] = useState('');
+  const [categoria, setCategoria] = useState("");
+  const [asunto, setAsunto] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+  const [prioridad, setPrioridad] = useState("MEDIA");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
-      const idUsuario = localStorage.getItem('idUsuario');
-      
-      await api.post('/incidencias', {
+      const idUsuario = localStorage.getItem("idUsuario");
+      await api.post("/incidencias", {
         titulo: asunto,
-        descripcion: descripcion,
-        motivo: 'Generado desde portal web',
-        categoria: categoria,
-        prioridad: 'MEDIA',
+        descripcion,
+        motivo: "Generado desde portal web",
+        categoria,
+        prioridad,
         sedeId: 1,
         areaId: 1,
-        reportadoPorId: idUsuario ? parseInt(idUsuario) : null
+        reportadoPorId: idUsuario ? parseInt(idUsuario) : null,
       });
-
-      alert('Reporte enviado y registrado en el sistema');
-      navigate('/historial');
-    } catch (error) {
-      console.error(error);
-      alert('Hubo un error al guardar el reporte');
+      alert("Reporte enviado exitosamente");
+      navigate("/historial");
+    } catch {
+      alert("Error al guardar el reporte");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <>
       <Navbar />
-
-      <main className="container-fluid main p-5">
-        <div className="container py-5 bg-light min-vh-100">
-          <div className="text-center mb-5">
-            <h2 className="fw-bold txt-primary">Nuevo Informe de Incidencia</h2>
-            <p className="text-muted mx-auto" style={{ maxWidth: '500px' }}>
-              Complete los detalles a continuación para registrar una nueva entrada en el registro institucional.
+      <main className="page-main">
+        <div className="container" style={{ maxWidth: "680px" }}>
+          <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                background: "var(--azul-suave)",
+                color: "var(--azul-claro)",
+                fontSize: "0.78rem",
+                fontWeight: "600",
+                letterSpacing: "1px",
+                textTransform: "uppercase",
+                padding: "5px 14px",
+                borderRadius: "100px",
+                marginBottom: "1rem",
+              }}
+            >
+              Nueva Incidencia
+            </div>
+            <h1 className="page-title" style={{ textAlign: "center" }}>
+              Registrar Reporte
+            </h1>
+            <p className="page-subtitle" style={{ textAlign: "center" }}>
+              Complete los detalles para registrar una incidencia
             </p>
           </div>
 
-          <div className="row justify-content-center">
-            <div className="col-md-7 col-lg-6">
-              <div className="card border-0 shadow-sm p-4 p-md-5">
-                <form onSubmit={handleSubmit}>
-                  <div className="mb-4">
-                    <label className="form-label fw-bold small text-uppercase text-muted">Categoría</label>
-                    <select 
-                      className="form-select border-0 bg-light py-3" 
-                      value={categoria}
-                      onChange={(e) => setCategoria(e.target.value)}
-                      required
-                    >
-                      <option value="" disabled>Seleccione una categoría</option>
-                      <option value="INFRAESTRUCTURA">Infraestructura</option>
-                      <option value="TECNOLOGIA">Tecnología</option>
-                      <option value="SEGURIDAD">Seguridad</option>
-                      <option value="OTROS">Otros</option>
-                    </select>
-                  </div>
-
-                  <div className="mb-4">
-                    <label className="form-label fw-bold small text-uppercase text-muted">Asunto</label>
-                    <input 
-                      type="text" 
-                      className="form-control border-0 bg-light py-3"
-                      placeholder="Ej. Fallo de iluminación en el ala norte" 
-                      value={asunto}
-                      onChange={(e) => setAsunto(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="mb-4">
-                    <label className="form-label fw-bold small text-uppercase text-muted">Descripción Detallada</label>
-                    <textarea 
-                      className="form-control border-0 bg-light" 
-                      rows="5"
-                      placeholder="Proporcione una descripción clara..."
-                      value={descripcion}
-                      onChange={(e) => setDescripcion(e.target.value)}
-                      required
-                    ></textarea>
-                  </div>
-
-                  <div className="mb-5">
-                    <label className="form-label fw-bold small text-uppercase text-muted">Evidencia Adjunta</label>
-                    <div className="upload-area border border-2 border-dashed rounded-3 p-5 text-center bg-white">
-                      <p className="mb-1 fw-bold">Haga clic para subir o arrastre archivos</p>
-                      <p>PNG, JPG hasta 5MB</p>
-                    </div>
-                  </div>
-
-                  <button type="submit" className="btn w-100 py-3 fw-bold text-white mb-3 bg-primary">
-                    Enviar Reporte
-                  </button>
-
-                  <div className="text-center">
-                    <Link to="/perfil" className="btn btn-danger py-3 w-100">
-                      Cancelar y volver al panel
-                    </Link>
-                  </div>
-                </form>
+          <div className="card-custom">
+            <form onSubmit={handleSubmit}>
+              <div className="row g-3" style={{ marginBottom: "1.25rem" }}>
+                <div className="col-md-6">
+                  <label className="form-label-custom">Categoría</label>
+                  <select
+                    className="form-control-custom form-select-custom"
+                    value={categoria}
+                    onChange={(e) => setCategoria(e.target.value)}
+                    required
+                  >
+                    <option value="" disabled>
+                      Seleccionar...
+                    </option>
+                    <option value="INFRAESTRUCTURA">Infraestructura</option>
+                    <option value="TECNOLOGIA">Tecnología</option>
+                    <option value="SEGURIDAD">Seguridad</option>
+                    <option value="OTROS">Otros</option>
+                  </select>
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label-custom">Prioridad</label>
+                  <select
+                    className="form-control-custom form-select-custom"
+                    value={prioridad}
+                    onChange={(e) => setPrioridad(e.target.value)}
+                    required
+                  >
+                    <option value="BAJA">Baja</option>
+                    <option value="MEDIA">Media</option>
+                    <option value="ALTA">Alta</option>
+                    <option value="CRITICA">Crítica</option>
+                  </select>
+                </div>
               </div>
-            </div>
+
+              <div style={{ marginBottom: "1.25rem" }}>
+                <label className="form-label-custom">Asunto</label>
+                <input
+                  type="text"
+                  className="form-control-custom"
+                  placeholder="Breve título del problema"
+                  value={asunto}
+                  onChange={(e) => setAsunto(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div style={{ marginBottom: "2rem" }}>
+                <label className="form-label-custom">
+                  Descripción detallada
+                </label>
+                <textarea
+                  className="form-control-custom"
+                  rows="5"
+                  placeholder="Explique la situación con el mayor detalle posible..."
+                  value={descripcion}
+                  onChange={(e) => setDescripcion(e.target.value)}
+                  required
+                  style={{ resize: "vertical", minHeight: "130px" }}
+                ></textarea>
+              </div>
+
+              <div style={{ display: "flex", gap: "12px" }}>
+                <Link
+                  to="/perfil"
+                  className="btn-secondary-custom"
+                  style={{ flex: 1, padding: "12px" }}
+                >
+                  Cancelar
+                </Link>
+                <button
+                  type="submit"
+                  className="btn-primary-custom"
+                  style={{ flex: 2 }}
+                  disabled={loading}
+                >
+                  {loading ? "Enviando..." : "Enviar Reporte"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </main>
-
       <Footer />
     </>
   );

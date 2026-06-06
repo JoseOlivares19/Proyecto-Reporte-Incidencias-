@@ -5,6 +5,7 @@ import Perfil from './pages/Perfil';
 import Reporte from './pages/Reporte';
 import Historial from './pages/Historial';
 import Nosotros from './pages/Nosotros';
+import Dashboard from './pages/Dashboard';
 
 const RutaPrivada = ({ children }) => {
   const { user } = useAuth();
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="/perfil" element={<RutaPrivada><Perfil /></RutaPrivada>} />
           <Route path="/reporte" element={<RutaPrivada><Reporte /></RutaPrivada>} />
           <Route path="/historial" element={<RutaPrivada><Historial /></RutaPrivada>} />
+          <Route path="/dashboard" element={<RutaPrivada><Dashboard /></RutaPrivada>} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

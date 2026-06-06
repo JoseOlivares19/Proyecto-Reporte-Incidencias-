@@ -1,121 +1,258 @@
-import { useState, useEffect } from 'react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
-import api from '../services/api';
+import { useState, useEffect } from "react";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
+import api from "../services/api";
+
+const getEstadoClass = (estado) => {
+  switch (estado) {
+    case "REGISTRADO":
+      return "badge-estado badge-registrado";
+    case "EN_PROCESO":
+      return "badge-estado badge-en-proceso";
+    case "RESUELTO":
+      return "badge-estado badge-resuelto";
+    case "REABIERTO":
+      return "badge-estado badge-reabierto";
+    default:
+      return "badge-estado badge-registrado";
+  }
+};
+
+const getPrioridadClass = (p) => {
+  switch (p) {
+    case "CRITICA":
+      return "badge-estado badge-critica";
+    case "ALTA":
+      return "badge-estado badge-alta";
+    case "MEDIA":
+      return "badge-estado badge-media";
+    default:
+      return "badge-estado badge-baja";
+  }
+};
 
 export default function Historial() {
   const [incidencias, setIncidencias] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [estadoFiltro, setEstadoFiltro] = useState("");
+  const [fechaInicio, setFechaInicio] = useState("");
+  const [fechaFin, setFechaFin] = useState("");
+  const [refresh, setRefresh] = useState(0);
+
+  const rol = localStorage.getItem("rol");
+  const idUsuario = localStorage.getItem("idUsuario");
+  const esAdmin = rol === "ADMINISTRADOR" || rol === "SISTEMA";
 
   useEffect(() => {
-    const fetchIncidencias = async () => {
+    let cancelled = false;
+    const load = async () => {
+      setCargando(true);
       try {
-        const response = await api.get('/incidencias');
-        setIncidencias(response.data);
-      } catch (error) {
-        console.error(error);
-        alert('Error al cargar el historial');
+        const url = esAdmin
+          ? "/incidencias"
+          : `/incidencias/mis-reportes/${idUsuario}?estado=${estadoFiltro}&fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`;
+        const r = await api.get(url);
+        if (!cancelled) setIncidencias(r.data);
+      } catch (e) {
+        console.error(e);
       } finally {
-        setCargando(false);
+        if (!cancelled) setCargando(false);
       }
     };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [esAdmin, idUsuario, estadoFiltro, fechaInicio, fechaFin, refresh]);
 
-    fetchIncidencias();
-  }, []);
-
-  const handleExportar = async () => {
+  const cambiarEstado = async (id, nuevoEstado) => {
     try {
-      const response = await api.get('/incidencias/exportar', { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'incidencias.xlsx');
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } catch (error) {
-      console.error(error);
-      alert('Error al exportar');
+      await api.put(
+        `/incidencias/${id}/estado?nuevoEstado=${nuevoEstado}&usuarioAccionId=${idUsuario}&comentario=Actualizado`,
+      );
+      setRefresh((r) => r + 1);
+    } catch {
+      alert("Error al actualizar");
+    }
+  };
+
+  const reabrir = async (id) => {
+    const motivo = prompt("Motivo de reapertura:");
+    if (motivo) {
+      try {
+        await api.put(
+          `/incidencias/${id}/reabrir?solicitadoPorId=${idUsuario}&motivo=${motivo}`,
+        );
+        setRefresh((r) => r + 1);
+      } catch {
+        alert("Error al reabrir");
+      }
     }
   };
 
   return (
     <>
       <Navbar />
-
-      <main className="container-fluid main p-5">
-        <div className="container py-4 bg-light">
-          <div className="d-flex justify-content-between align-items-end mb-4">
+      <main className="page-main">
+        <div className="container">
+          <div className="page-header">
             <div>
-              <p className="fw-bolder">Historial de Reportes</p>
-              <h2 className="fw-bold txt-primary">Archivo de Incidentes</h2>
-              <p className="text-muted mb-0">Consulta y gestiona el historial completo de las incidencias</p>
+              <h1 className="page-title">Archivo de Incidentes</h1>
+              <p className="page-subtitle">Gestión e historial de reportes</p>
             </div>
-            <div className="d-flex gap-2">
-              <button onClick={handleExportar} className="btn btn-white border shadow-sm px-3">Exportar Excel</button>
-            </div>
+
+            {!esAdmin && (
+              <div className="filters-bar">
+                <select
+                  className="filter-select"
+                  value={estadoFiltro}
+                  onChange={(e) => setEstadoFiltro(e.target.value)}
+                >
+                  <option value="">Todos los estados</option>
+                  <option value="REGISTRADO">Registrado</option>
+                  <option value="EN_PROCESO">En Proceso</option>
+                  <option value="RESUELTO">Resuelto</option>
+                </select>
+                <input
+                  type="date"
+                  className="filter-input"
+                  value={fechaInicio}
+                  onChange={(e) => setFechaInicio(e.target.value)}
+                />
+                <input
+                  type="date"
+                  className="filter-input"
+                  value={fechaFin}
+                  onChange={(e) => setFechaFin(e.target.value)}
+                />
+              </div>
+            )}
           </div>
 
-          <div className="card shadow-sm overflow-hidden mb-4">
-            <div className="table-responsive">
-              <table className="table table-hover align-middle mb-0">
-                <thead className="bg-light">
-                  <tr className="text-muted small text-uppercase">
-                    <th className="border-0 px-4 py-3">Código</th>
-                    <th className="border-0 py-3">Título</th>
-                    <th className="border-0 py-3">Categoría</th>
-                    <th className="border-0 py-3">Estado</th>
-                    <th className="border-0 py-3">Prioridad</th>
-                  </tr>
-                </thead>
-                <tbody className="border-top-0">
-                  {cargando ? (
-                    <tr><td colSpan="5" className="text-center py-4">Cargando datos...</td></tr>
-                  ) : incidencias.length === 0 ? (
-                    <tr><td colSpan="5" className="text-center py-4">No hay incidencias registradas.</td></tr>
-                  ) : (
-                    incidencias.map((inc) => (
+          <div
+            className="card-custom"
+            style={{ padding: 0, overflow: "hidden" }}
+          >
+            {cargando ? (
+              <div className="loading-dots">
+                <div className="loading-dot"></div>
+                <div className="loading-dot"></div>
+                <div className="loading-dot"></div>
+              </div>
+            ) : incidencias.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-state-icon">
+                  <svg
+                    width="28"
+                    height="28"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="var(--texto-suave)"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                  </svg>
+                </div>
+                <p
+                  style={{
+                    fontWeight: "600",
+                    color: "var(--texto)",
+                    marginBottom: "4px",
+                  }}
+                >
+                  Sin incidencias registradas
+                </p>
+                <p style={{ fontSize: "0.85rem" }}>
+                  No se encontraron reportes con los filtros seleccionados.
+                </p>
+              </div>
+            ) : (
+              <div style={{ overflowX: "auto" }}>
+                <table className="table-custom">
+                  <thead>
+                    <tr>
+                      <th>Código</th>
+                      <th>Título</th>
+                      <th>Categoría</th>
+                      <th>Estado</th>
+                      <th>Prioridad</th>
+                      {esAdmin && <th>Acciones</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {incidencias.map((inc) => (
                       <tr key={inc.id}>
-                        <td className="px-4 fw-bold">#{inc.codigo}</td>
-                        <td>{inc.titulo}</td>
                         <td>
-                          <span className="d-flex align-items-center gap-2">{inc.categoria}</span>
+                          <span className="table-code">#{inc.codigo}</span>
+                        </td>
+                        <td style={{ fontWeight: "500" }}>{inc.titulo}</td>
+                        <td
+                          style={{
+                            color: "var(--texto-suave)",
+                            fontSize: "0.85rem",
+                          }}
+                        >
+                          {inc.categoria}
                         </td>
                         <td>
-                          <span className="small fw-bold text-uppercase">{inc.estado}</span>
+                          <span className={getEstadoClass(inc.estado)}>
+                            {inc.estado.replace(/_/g, " ")}
+                          </span>
                         </td>
                         <td>
-                          <span className={`badge ${inc.prioridad === 'ALTA' || inc.prioridad === 'CRITICA' ? 'bg-danger' : 'bg-secondary'}`}>
+                          <span className={getPrioridadClass(inc.prioridad)}>
                             {inc.prioridad}
                           </span>
                         </td>
+                        {esAdmin && (
+                          <td>
+                            <div style={{ display: "flex", gap: "6px" }}>
+                              {(inc.estado === "REGISTRADO" ||
+                                inc.estado === "REABIERTO") && (
+                                <button
+                                  className="btn-action btn-action-blue"
+                                  onClick={() =>
+                                    cambiarEstado(inc.id, "EN_PROCESO")
+                                  }
+                                >
+                                  Procesar
+                                </button>
+                              )}
+                              {inc.estado !== "CERRADO" &&
+                                inc.estado !== "RESUELTO" && (
+                                  <button
+                                    className="btn-action btn-action-green"
+                                    onClick={() =>
+                                      cambiarEstado(inc.id, "RESUELTO")
+                                    }
+                                  >
+                                    Resolver
+                                  </button>
+                                )}
+                              {(inc.estado === "CERRADO" ||
+                                inc.estado === "RESUELTO") && (
+                                <button
+                                  className="btn-action btn-action-orange"
+                                  onClick={() => reabrir(inc.id)}
+                                >
+                                  Reabrir
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        )}
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="card-footer bg-white border-0 d-flex justify-content-between align-items-center py-3">
-              <small className="text-muted">Mostrando {incidencias.length} reportes</small>
-            </div>
-          </div>
-
-          <div className="row g-4">
-            <div className="col-md-4">
-              <div className="card border-0 shadow-sm p-4 h-100">
-                <i className="bi bi-clipboard-data text-primary fs-4 mb-3"></i>
-                <h6 className="fw-bold">Auditoría Total</h6>
-                <p className="small text-muted mb-4">Registro de todas las incidencias...</p>
-                <div className="d-flex align-items-center gap-2">
-                  <h3 className="fw-bold mb-0">{incidencias.length}</h3>
-                </div>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </main>
-
       <Footer />
     </>
   );

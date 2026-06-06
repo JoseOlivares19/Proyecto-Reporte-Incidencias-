@@ -1,62 +1,176 @@
-import { useState } from 'react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
+import { useState } from "react";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 
 export default function Perfil() {
+  const [notifEmail, setNotifEmail] = useState(true);
+  const [notifSys, setNotifSys] = useState(true);
+
   const [usuarioData] = useState(() => ({
-    id: localStorage.getItem('idUsuario') || '',
-    rol: localStorage.getItem('rol') || ''
+    id: localStorage.getItem("idUsuario") || "",
+    rol: localStorage.getItem("rol") || "",
   }));
 
   return (
     <>
       <Navbar />
-
-      <main className="container-fluid main p-5">
-        <div className="container py-5">
-          <header className="mb-4">
-            <h1 className="fw-bold">Perfil Institucional</h1>
-          </header>
-
-          <div className="card border-0 shadow-sm mb-4 p-3">
-            <div className="d-flex align-items-center">
-              <div className="position-relative">
-                <svg width="120px" height="120px" viewBox="-204.8 -204.8 1433.60 1433.60" xmlns="http://www.w3.org/2000/svg" fill="#000000">
-                  <path fill="#000000" d="M628.736 528.896A416 416 0 0 1 928 928H96a415.872 415.872 0 0 1 299.264-399.104L512 704l116.736-175.104zM720 304a208 208 0 1 1-416 0 208 208 0 0 1 416 0z"></path>
-                </svg>
-              </div>
-
-              <div className="mx-4">
-                <h3 className="fw-bold">
-                  Usuario del Sistema <span className="badge bg-otro text-primary fs-6 ms-2">{usuarioData.rol}</span>
-                </h3>
-                <p className="text-muted mb-1">ID Institucional: {usuarioData.id}</p>
-              </div>
+      <main className="page-main">
+        <div className="container" style={{ maxWidth: "860px" }}>
+          <div className="page-header">
+            <div>
+              <h1 className="page-title">Mi Perfil</h1>
+              <p className="page-subtitle">
+                Configuración y preferencias de cuenta
+              </p>
             </div>
           </div>
 
-          <div className="row">
-            <div className="col-md-4 mb-4">
-              <div className="card border-0 shadow-sm h-100 p-3">
-                <h5 className="fw-bold mb-4">Notificaciones</h5>
-                <div className="form-check mb-3">
-                  <input className="form-check-input" type="checkbox" defaultChecked id="check1" />
-                  <label className="form-check-label" htmlFor="check1">Correo electrónico</label>
+          {/* Profile card */}
+          <div
+            className="card-custom"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "1.5rem",
+              marginBottom: "1.5rem",
+            }}
+          >
+            <div className="profile-avatar">
+              <span>{usuarioData.rol.charAt(0) || "U"}</span>
+            </div>
+            <div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  marginBottom: "6px",
+                }}
+              >
+                <h3
+                  style={{
+                    fontFamily: "'Playfair Display', serif",
+                    fontSize: "1.3rem",
+                    fontWeight: "700",
+                    color: "var(--azul)",
+                    margin: 0,
+                  }}
+                >
+                  Usuario del Sistema
+                </h3>
+                <span className="role-badge">{usuarioData.rol}</span>
+              </div>
+              <p
+                style={{
+                  color: "var(--texto-suave)",
+                  fontSize: "0.875rem",
+                  margin: 0,
+                }}
+              >
+                ID Institucional:{" "}
+                <span style={{ fontWeight: "600", color: "var(--azul)" }}>
+                  {usuarioData.id}
+                </span>
+              </p>
+            </div>
+          </div>
+
+          <div className="row g-4">
+            <div className="col-md-6">
+              <div className="card-custom" style={{ height: "100%" }}>
+                <h6
+                  style={{
+                    fontWeight: "700",
+                    color: "var(--azul)",
+                    marginBottom: "1.2rem",
+                    fontSize: "0.95rem",
+                  }}
+                >
+                  Notificaciones
+                </h6>
+                <div className="switch-row">
+                  <span className="switch-label">
+                    Alertas por correo electrónico
+                  </span>
+                  <div className="form-check form-switch mb-0">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      role="switch"
+                      checked={notifEmail}
+                      onChange={(e) => setNotifEmail(e.target.checked)}
+                    />
+                  </div>
+                </div>
+                <div className="switch-row">
+                  <span className="switch-label">Alertas del sistema</span>
+                  <div className="form-check form-switch mb-0">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      role="switch"
+                      checked={notifSys}
+                      onChange={(e) => setNotifSys(e.target.checked)}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="col-md-4 mb-4">
-              <div className="card border-0 shadow-sm h-100 p-3">
-                <h5 className="fw-bold mb-3">Seguridad</h5>
-                <p className="small text-muted">Mantén tu cuenta segura actualizando tu contraseña periódicamente.</p>
-                <button className="btn bg-danger text-white mt-auto">Cambiar contraseña</button>
+            <div className="col-md-6">
+              <div className="card-custom" style={{ height: "100%" }}>
+                <h6
+                  style={{
+                    fontWeight: "700",
+                    color: "var(--azul)",
+                    marginBottom: "0.5rem",
+                    fontSize: "0.95rem",
+                  }}
+                >
+                  Seguridad
+                </h6>
+                <p
+                  style={{
+                    color: "var(--texto-suave)",
+                    fontSize: "0.875rem",
+                    lineHeight: "1.6",
+                    marginBottom: "1.5rem",
+                  }}
+                >
+                  Actualice sus credenciales periódicamente para mantener su
+                  cuenta segura.
+                </p>
+                <button
+                  className="btn-secondary-custom"
+                  style={{ color: "#DC2626", borderColor: "#FCA5A5" }}
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect
+                      x="3"
+                      y="11"
+                      width="18"
+                      height="11"
+                      rx="2"
+                      ry="2"
+                    ></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
+                  Cambiar contraseña
+                </button>
               </div>
             </div>
           </div>
         </div>
       </main>
-
       <Footer />
     </>
   );

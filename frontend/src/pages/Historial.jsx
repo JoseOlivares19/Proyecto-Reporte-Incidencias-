@@ -31,6 +31,46 @@ const getPrioridadClass = (p) => {
   }
 };
 
+const renderTimeline = (estadoActual) => {
+  const steps = ["REGISTRADO", "EN_PROCESO", "RESUELTO"];
+  let currentIndex = steps.indexOf(estadoActual);
+
+  if (estadoActual === "REABIERTO") currentIndex = 1;
+  if (estadoActual === "CERRADO") currentIndex = 2;
+
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", margin: "25px 0 10px 0", position: "relative" }}>
+      <div style={{ position: "absolute", top: "15px", left: "15%", right: "15%", height: "4px", backgroundColor: "#e9ecef", zIndex: 1 }}></div>
+      <div style={{
+        position: "absolute", top: "15px", left: "15%",
+        width: currentIndex === 0 ? "0%" : currentIndex === 1 ? "50%" : "100%",
+        height: "4px", backgroundColor: "#2ecc71", zIndex: 2, transition: "width 0.5s ease"
+      }}></div>
+
+      {steps.map((step, index) => (
+        <div key={step} style={{ display: "flex", flexDirection: "column", alignItems: "center", zIndex: 3, width: "33%" }}>
+          <div style={{
+            width: "34px", height: "34px", borderRadius: "50%",
+            backgroundColor: index <= currentIndex ? "#2ecc71" : "#e9ecef",
+            color: index <= currentIndex ? "white" : "#6c757d",
+            display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold",
+            border: "4px solid white", boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+          }}>
+            {index < currentIndex ? "✓" : index + 1}
+          </div>
+          <span style={{
+            fontSize: "0.8rem", marginTop: "8px",
+            fontWeight: index <= currentIndex ? "bold" : "normal",
+            color: index <= currentIndex ? "#333" : "#999"
+          }}>
+            {step.replace(/_/g, " ")}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export default function Historial() {
   const [incidencias, setIncidencias] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -38,10 +78,10 @@ export default function Historial() {
   const [fechaInicio, setFechaInicio] = useState("");
   const [fechaFin, setFechaFin] = useState("");
   const [refresh, setRefresh] = useState(0);
-
   const rol = localStorage.getItem("rol");
   const idUsuario = localStorage.getItem("idUsuario");
   const esAdmin = rol === "ADMINISTRADOR" || rol === "SISTEMA";
+  const [incidenciaSeleccionada, setIncidenciaSeleccionada] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -210,17 +250,24 @@ export default function Historial() {
                         {esAdmin && (
                           <td>
                             <div style={{ display: "flex", gap: "6px" }}>
+                              <button
+                                className="btn-action"
+                                style={{ backgroundColor: "#6c757d", color: "white", border: "none" }}
+                                onClick={() => setIncidenciaSeleccionada(inc)}
+                              >
+                                Detalles
+                              </button>
                               {(inc.estado === "REGISTRADO" ||
                                 inc.estado === "REABIERTO") && (
-                                <button
-                                  className="btn-action btn-action-blue"
-                                  onClick={() =>
-                                    cambiarEstado(inc.id, "EN_PROCESO")
-                                  }
-                                >
-                                  Procesar
-                                </button>
-                              )}
+                                  <button
+                                    className="btn-action btn-action-blue"
+                                    onClick={() =>
+                                      cambiarEstado(inc.id, "EN_PROCESO")
+                                    }
+                                  >
+                                    Procesar
+                                  </button>
+                                )}
                               {inc.estado !== "CERRADO" &&
                                 inc.estado !== "RESUELTO" && (
                                   <button
@@ -234,13 +281,13 @@ export default function Historial() {
                                 )}
                               {(inc.estado === "CERRADO" ||
                                 inc.estado === "RESUELTO") && (
-                                <button
-                                  className="btn-action btn-action-orange"
-                                  onClick={() => reabrir(inc.id)}
-                                >
-                                  Reabrir
-                                </button>
-                              )}
+                                  <button
+                                    className="btn-action btn-action-orange"
+                                    onClick={() => reabrir(inc.id)}
+                                  >
+                                    Reabrir
+                                  </button>
+                                )}
                             </div>
                           </td>
                         )}
@@ -252,6 +299,70 @@ export default function Historial() {
             )}
           </div>
         </div>
+
+        {incidenciaSeleccionada && (
+          <div style={{
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.5)", display: "flex",
+            alignItems: "center", justifyContent: "center", zIndex: 9999
+          }}>
+            <div style={{
+              backgroundColor: "white", padding: "24px", borderRadius: "8px",
+              width: "90%", maxWidth: "550px", maxHeight: "85vh", overflowY: "auto",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <h3 style={{ margin: 0, color: "var(--azul)" }}>Detalle de Incidencia</h3>
+                <button
+                  onClick={() => setIncidenciaSeleccionada(null)}
+                  style={{ background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "#666" }}
+                >
+                  &times;
+                </button>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                <div>
+                  <strong>Código:</strong> <span className="table-code">#{incidenciaSeleccionada.codigo}</span>
+                </div>
+                <div>
+                  <strong>Título:</strong> {incidenciaSeleccionada.titulo}
+                </div>
+                <div>
+                  <strong>Descripción:</strong>
+                  <p style={{ margin: "4px 0 0 0", color: "#555", backgroundColor: "#f8f9fa", padding: "12px", borderRadius: "6px", fontSize: "0.95rem" }}>
+                    {incidenciaSeleccionada.descripcion || "Sin descripción"}
+                  </p>
+                </div>
+                <div>
+                  <strong>Motivo:</strong> {incidenciaSeleccionada.motivo || "No especificado"}
+                </div>
+                <div>
+                  <strong>Fecha de Creación:</strong> {incidenciaSeleccionada.fechaCreacion ? new Date(incidenciaSeleccionada.fechaCreacion).toLocaleString() : "N/A"}
+                </div>
+                <div>
+                  <strong>Prioridad:</strong> <span className={getPrioridadClass(incidenciaSeleccionada.prioridad)}>{incidenciaSeleccionada.prioridad}</span>
+                </div>
+
+                <div style={{ marginTop: "15px", paddingTop: "15px", borderTop: "1px solid #eee" }}>
+                  <strong style={{ color: "var(--azul)" }}>Progreso de la Incidencia:</strong>
+                  {renderTimeline(incidenciaSeleccionada.estado)}
+                </div>
+              </div>
+
+              <div style={{ marginTop: "24px", textAlign: "right" }}>
+                <button
+                  className="btn-gold-custom"
+                  onClick={() => setIncidenciaSeleccionada(null)}
+                  style={{ padding: "8px 20px", border: "none", borderRadius: "4px", cursor: "pointer" }}
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </main>
       <Footer />
     </>

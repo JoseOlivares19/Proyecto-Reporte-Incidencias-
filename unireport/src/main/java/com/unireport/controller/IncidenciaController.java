@@ -92,4 +92,14 @@ public class IncidenciaController {
                 .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .body(file);
     }
+
+    @PreAuthorize("hasRole('SISTEMA')")
+    @GetMapping("/exportar-pdf-resueltas")
+    public ResponseEntity<byte[]> exportarPdfResueltas() {
+        byte[] file = incidenciaService.exportarPdfResueltas();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=incidencias_resueltas.pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(file);
+    }
 }

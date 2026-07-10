@@ -11,6 +11,14 @@ import com.unireport.repository.*;
 import com.unireport.service.IncidenciaService;
 import com.unireport.service.MailService;
 import lombok.RequiredArgsConstructor;
+
+import org.apache.poi.ss.usermodel.BorderStyle;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -21,10 +29,20 @@ import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import com.lowagie.text.Document;
+import com.lowagie.text.FontFactory;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.Phrase;
+import com.lowagie.text.pdf.PdfPCell;
+import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.pdf.PdfWriter;
+import java.awt.Color;
 
 @RequiredArgsConstructor
 @Service
@@ -66,7 +84,8 @@ public class IncidenciaServiceImpl implements IncidenciaService {
         if (guardada.getReportadoPor() != null && guardada.getReportadoPor().getEmail() != null) {
             mailService.enviarCorreo("unireport.pruebas@gmail.com",
                     "Incidencia Registrada: " + guardada.getCodigo(),
-                    "Su incidencia ha sido registrada correctamente. Usuario original: " + guardada.getReportadoPor().getEmail());
+                    "Su incidencia ha sido registrada correctamente. Usuario original: "
+                            + guardada.getReportadoPor().getEmail());
         }
 
         return guardada;
@@ -87,10 +106,12 @@ public class IncidenciaServiceImpl implements IncidenciaService {
     public List<Incidencia> listarPorSedeYArea(Long sedeId, Long areaId) {
         List<Incidencia> incidencias = incidenciaRepository.findAll();
         if (sedeId != null) {
-            incidencias = incidencias.stream().filter(i -> i.getSede() != null && i.getSede().getId().equals(sedeId)).collect(Collectors.toList());
+            incidencias = incidencias.stream().filter(i -> i.getSede() != null && i.getSede().getId().equals(sedeId))
+                    .collect(Collectors.toList());
         }
         if (areaId != null) {
-            incidencias = incidencias.stream().filter(i -> i.getArea() != null && i.getArea().getId().equals(areaId)).collect(Collectors.toList());
+            incidencias = incidencias.stream().filter(i -> i.getArea() != null && i.getArea().getId().equals(areaId))
+                    .collect(Collectors.toList());
         }
         return incidencias;
     }
@@ -146,7 +167,8 @@ public class IncidenciaServiceImpl implements IncidenciaService {
         if (incidencia.getReportadoPor() != null && incidencia.getReportadoPor().getEmail() != null) {
             mailService.enviarCorreo("unireport.pruebas@gmail.com",
                     "Actualización de Incidencia: " + incidencia.getCodigo(),
-                    "El estado de su incidencia ha cambiado a: " + nuevoEstado + ". Usuario original: " + incidencia.getReportadoPor().getEmail());
+                    "El estado de su incidencia ha cambiado a: " + nuevoEstado + ". Usuario original: "
+                            + incidencia.getReportadoPor().getEmail());
         }
     }
 
@@ -200,32 +222,136 @@ public class IncidenciaServiceImpl implements IncidenciaService {
                 .collect(Collectors.groupingBy(i -> i.getEstado().name(), Collectors.counting()));
         stats.put("porEstado", porEstado);
 
+        Map<String, Long> porPrioridad = todas.stream()
+                .collect(Collectors.groupingBy(i -> i.getPrioridad().name(), Collectors.counting()));
+        stats.put("porPrioridad", porPrioridad);
+
+        Map<String, Long> porMes = new LinkedHashMap<>();
+        String[] meses = { "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre",
+                "Octubre", "Noviembre", "Diciembre" };
+        for (String mes : meses) {
+            porMes.put(mes, 0L);
+        }
+        for (Incidencia i : todas) {
+            if (i.getFechaCreacion() != null) {
+                int monthIdx = i.getFechaCreacion().getMonthValue() - 1;
+                String mesNombre = meses[monthIdx];
+                porMes.put(mesNombre, porMes.get(mesNombre) + 1);
+            }
+        }
+        stats.put("porMes", porMes);
+
         return stats;
     }
 
     @Override
     public byte[] exportarExcel() {
         List<Incidencia> incidencias = incidenciaRepository.findAll();
+
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Incidencias");
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerFont.setColor(IndexedColors.WHITE.getIndex());
+            headerStyle.setFont(headerFont);
+            headerStyle.setFillForegroundColor(IndexedColors.BLUE.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            headerStyle.setAlignment(HorizontalAlignment.CENTER);
+            CellStyle cellStyle = workbook.createCellStyle();
+            cellStyle.setBorderTop(BorderStyle.THIN);
+            cellStyle.setBorderBottom(BorderStyle.THIN);
+            cellStyle.setBorderLeft(BorderStyle.THIN);
+            cellStyle.setBorderRight(BorderStyle.THIN);
+
             Row headerRow = sheet.createRow(0);
-            headerRow.createCell(0).setCellValue("Código");
-            headerRow.createCell(1).setCellValue("Título");
-            headerRow.createCell(2).setCellValue("Estado");
-            headerRow.createCell(3).setCellValue("Prioridad");
+            Cell cell0 = headerRow.createCell(0);
+            cell0.setCellValue("Código");
+            cell0.setCellStyle(headerStyle);
+
+            Cell cell1 = headerRow.createCell(1);
+            cell1.setCellValue("Título");
+            cell1.setCellStyle(headerStyle);
+
+            Cell cell2 = headerRow.createCell(2);
+            cell2.setCellValue("Estado");
+            cell2.setCellStyle(headerStyle);
+
+            Cell cell3 = headerRow.createCell(3);
+            cell3.setCellValue("Prioridad");
+            cell3.setCellStyle(headerStyle);
 
             int rowIdx = 1;
             for (Incidencia incidencia : incidencias) {
                 Row row = sheet.createRow(rowIdx++);
-                row.createCell(0).setCellValue(incidencia.getCodigo());
-                row.createCell(1).setCellValue(incidencia.getTitulo());
-                row.createCell(2).setCellValue(incidencia.getEstado().name());
-                row.createCell(3).setCellValue(incidencia.getPrioridad().name());
+                Cell c0 = row.createCell(0);
+                c0.setCellValue(incidencia.getCodigo());
+                c0.setCellStyle(cellStyle);
+
+                Cell c1 = row.createCell(1);
+                c1.setCellValue(incidencia.getTitulo());
+                c1.setCellStyle(cellStyle);
+
+                Cell c2 = row.createCell(2);
+                c2.setCellValue(incidencia.getEstado().name());
+                c2.setCellStyle(cellStyle);
+
+                Cell c3 = row.createCell(3);
+                c3.setCellValue(incidencia.getPrioridad().name());
+                c3.setCellStyle(cellStyle);
             }
+
+            for (int i = 0; i < 4; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
             workbook.write(out);
             return out.toByteArray();
         } catch (Exception e) {
             throw new RuntimeException("Error al exportar Excel", e);
         }
     }
+
+    @Override
+    public byte[] exportarPdfResueltas() {
+        List<Incidencia> resueltas = incidenciaRepository.findAll().stream()
+                .filter(i -> i.getEstado() == EstadoIncidencia.RESUELTO)
+                .collect(Collectors.toList());
+
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Document document = new Document();
+            PdfWriter.getInstance(document, out);
+            document.open();
+
+            Paragraph titulo = new Paragraph("Reporte de Incidencias Resueltas",
+                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16));
+            titulo.setAlignment(Paragraph.ALIGN_CENTER);
+            titulo.setSpacingAfter(20);
+            document.add(titulo);
+
+            PdfPTable table = new PdfPTable(4);
+            table.setWidthPercentage(100);
+
+            String[] cabeceras = { "Código", "Título", "Prioridad", "Fecha de Creación" };
+            for (String cabecera : cabeceras) {
+                PdfPCell cell = new PdfPCell(new Phrase(cabecera, FontFactory.getFont(FontFactory.HELVETICA_BOLD)));
+                cell.setBackgroundColor(Color.LIGHT_GRAY);
+                table.addCell(cell);
+            }
+
+            for (Incidencia inc : resueltas) {
+                table.addCell(inc.getCodigo());
+                table.addCell(inc.getTitulo());
+                table.addCell(inc.getPrioridad().name());
+                table.addCell(inc.getFechaCreacion() != null ? inc.getFechaCreacion().toLocalDate().toString() : "");
+            }
+
+            document.add(table);
+            document.close();
+            return out.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException("Error al generar PDF", e);
+        }
+    }
+
 }

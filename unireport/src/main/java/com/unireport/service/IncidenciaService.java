@@ -12,6 +12,7 @@ public interface IncidenciaService {
     List<Incidencia> listarPorSedeYArea(Long sedeId, Long areaId);
     void escalarIncidencia(Long id);
     byte[] exportarExcel();
+    byte[] exportarPdfResueltas();
     List<Incidencia> listarMisIncidencias(Long usuarioId, String estado, String fechaInicio, String fechaFin);
     void cambiarEstado(Long id, String nuevoEstado, Long usuarioAccionId, Long tecnicoId, String comentario);
     void reabrirIncidencia(Long id, Long solicitadoPorId, String motivo);

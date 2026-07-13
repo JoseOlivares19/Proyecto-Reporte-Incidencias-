@@ -14,7 +14,7 @@ const RutaPrivada = ({ children }) => {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/universidad">
       <AuthProvider>
         <Routes>
           <Route path="/" element={<Home />} />
